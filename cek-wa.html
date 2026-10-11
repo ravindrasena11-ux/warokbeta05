@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex"><title>Cek WhatsApp WAROK</title>
+<style>
+body{font-family:system-ui,sans-serif;background:#FBF6F0;color:#2b1a20;margin:0;padding:24px}
+main{max-width:480px;margin:0 auto;background:#fff;border-radius:20px;padding:24px;box-shadow:0 8px 24px -12px #7A1F38}
+h1{font-size:20px;margin:0 0 4px}p{font-size:14px;color:#555;margin:4px 0 16px}
+input,button{width:100%;box-sizing:border-box;font-size:16px;padding:12px 14px;border-radius:12px;border:1px solid #ccc}
+button{background:#7A1F38;color:#fff;border:0;font-weight:700;margin-top:12px;cursor:pointer}button:disabled{opacity:.6}
+#out{margin-top:18px;font-size:14px;line-height:1.5}
+.row{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #eee;padding:6px 0}
+.ok{color:#17753a;font-weight:700}.bad{color:#b3261e;font-weight:700}.warn{color:#935A1F;font-weight:700}
+</style></head><body><main>
+<h1>Cek pengirim WhatsApp</h1>
+<p>Halaman ini hanya untuk pengelola. Masukkan kode pendaftaran petugas untuk melihat status perangkat Fonnte yang dipakai mengirim kode OTP.</p>
+<form id="f"><input id="k" type="password" placeholder="Kode pendaftaran petugas" autocomplete="off" required><button id="b">Cek status</button></form>
+<div id="out"></div>
+<script>
+const $=id=>document.getElementById(id),esc=t=>String(t??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+$('f').onsubmit=async e=>{e.preventDefault();const b=$('b'),o=$('out');b.disabled=true;o.textContent='Memeriksa…';
+ try{
+  const r=await fetch('/api/fonnte-status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kode:$('k').value.trim()})});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok){o.innerHTML='<span class="bad">'+esc(d.error||'Gagal ('+r.status+')')+'</span>';return}
+  if(!d.ok){const t=/token/i.test(d.reason);
+   o.innerHTML='<p class="bad">Fonnte menolak: '+esc(d.reason)+'</p>'+(t?'<p>Token yang dipakai tidak valid. Pastikan yang dipakai adalah <b>token perangkat</b> (menu Device di Fonnte), bukan token akun, lalu ganti di api.mjs atau di variabel FONNTE_TOKEN Netlify.</p>':'');return}
+  const conn=d.device_status==='connect',q=Number(d.quota);
+  const row=(a,v,c)=>'<div class="row"><span>'+a+'</span><span class="'+(c||'')+'">'+esc(v)+'</span></div>';
+  o.innerHTML=row('Nama perangkat',d.name)+row('Nomor pengirim',d.device)+row('Status',conn?'Tersambung':'TERPUTUS',conn?'ok':'bad')
+   +row('Paket',d.package)+row('Sisa kuota',d.quota,(isNaN(q)||q>0)?'':'bad')+row('Berlaku sampai',d.expired)
+   +'<p>'+(conn?(q===0?'<span class="bad">Kuota habis, pesan tidak akan terkirim.</span>':'<span class="ok">Perangkat siap mengirim.</span> Saat menguji, daftarkan nomor WhatsApp <b>selain</b> '+esc(d.device)+', karena pesan ke nomor pengirim sendiri tidak muncul sebagai notifikasi.'):'<span class="bad">Sambungkan ulang perangkat di dashboard Fonnte (scan QR), lalu cek lagi.</span>')+'</p>';
+ }catch(_){o.innerHTML='<span class="bad">Tidak bisa terhubung ke server.</span>'}finally{b.disabled=false}};
+</script></main></body></html>
